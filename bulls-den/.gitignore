@@ -1,0 +1,9 @@
+target/
+node_modules/
+.anchor/
+test-ledger/
+.DS_Store
+**/*.rs.bk
+app/node_modules/
+app/.next/
+app/.env.local
