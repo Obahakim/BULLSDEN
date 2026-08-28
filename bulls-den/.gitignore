@@ -7,3 +7,4 @@ test-ledger/
 app/node_modules/
 app/.next/
 app/.env.local
+.env.local
