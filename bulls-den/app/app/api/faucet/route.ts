@@ -4,6 +4,7 @@ import { Connection, Keypair, PublicKey } from "@solana/web3.js";
 import bs58 from "bs58";
 import { getOrCreateAssociatedTokenAccount, mintTo } from "@solana/spl-token";
 import { supabaseAdmin, supabaseAdminConfigured } from "@/lib/supabase-admin";
+import { verifySessionToken, SESSION_COOKIE } from "@/lib/auth";
 
 const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || "https://api.devnet.solana.com";
 const ANSEM_MINT = process.env.NEXT_PUBLIC_ANSEM_MINT;
@@ -29,9 +30,21 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Require a proven-ownership session (signed in via wallet signature) that
+  // matches the wallet being credited — stops anyone from POSTing an
+  // arbitrary address and draining the faucet on someone else's behalf.
+  const token = req.cookies.get(SESSION_COOKIE)?.value;
+  const session = verifySessionToken(token);
+  if (!session) {
+    return NextResponse.json({ error: "Sign in with your wallet first." }, { status: 401 });
+  }
+
   const { wallet } = await req.json();
   if (!wallet || typeof wallet !== "string") {
     return NextResponse.json({ error: "Missing wallet address." }, { status: 400 });
+  }
+  if (wallet !== session.wallet) {
+    return NextResponse.json({ error: "Wallet mismatch with active session." }, { status: 403 });
   }
 
   let recipient: PublicKey;
