@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { supabase, supabaseConfigured, type UserRow } from "@/lib/supabase";
 import { MAX_MARKET_DAYS } from "@/lib/constants";
+import { SignInGate } from "@/components/SignInGate";
 
 function EmailVerifyGate({
   wallet,
@@ -94,9 +95,7 @@ function EmailVerifyGate({
   );
 }
 
-export default function CreateMarketPage() {
-  const { publicKey } = useWallet();
-  const [emailVerified, setEmailVerified] = useState(false);
+function CreateMarketForm({ wallet }: { wallet: string }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [outcomeA, setOutcomeA] = useState("Yes");
@@ -109,123 +108,118 @@ export default function CreateMarketPage() {
     e.preventDefault();
     setStatus(null);
 
-    if (!publicKey) {
-      setStatus("Connect your wallet first.");
-      return;
-    }
-    if (!supabaseConfigured) {
-      setStatus("Supabase isn't configured yet — ask the admin to set NEXT_PUBLIC_SUPABASE_URL / ANON_KEY.");
-      return;
-    }
     if (!title || !deadline) {
       setStatus("Title and deadline are required.");
       return;
     }
 
-    const deadlineDate = new Date(deadline);
-    const maxDate = new Date(Date.now() + MAX_MARKET_DAYS * 24 * 60 * 60 * 1000);
-    if (deadlineDate > maxDate) {
-      setStatus(`Deadline can't be more than ${MAX_MARKET_DAYS} days out.`);
-      return;
-    }
-
     setBusy(true);
-    const { error } = await supabase.from("market_submissions").insert({
-      creator_wallet: publicKey.toBase58(),
-      title,
-      description,
-      outcome_a: outcomeA,
-      outcome_b: outcomeB,
-      deadline: deadlineDate.toISOString(),
-      status: "pending",
-    });
+    try {
+      const res = await fetch("/api/submit-market", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          wallet,
+          title,
+          description,
+          outcomeA,
+          outcomeB,
+          deadline: new Date(deadline).toISOString(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to submit.");
 
-    setBusy(false);
-    if (error) {
-      setStatus(error.message);
-    } else {
       setStatus("Submitted! An admin will review it shortly.");
       setTitle("");
       setDescription("");
       setDeadline("");
+    } catch (err: any) {
+      setStatus(err.message);
+    } finally {
+      setBusy(false);
     }
   }
+
+  return (
+    <form className="space-y-5" onSubmit={handleSubmit}>
+      <div>
+        <label className="block text-sm mb-1">Title</label>
+        <input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-4 py-2"
+          placeholder="Will X happen by Y date?"
+        />
+      </div>
+      <div>
+        <label className="block text-sm mb-1">Description / Resolution criteria</label>
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-4 py-2 h-28"
+          placeholder="Clear rules for how this will be resolved..."
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm mb-1">Outcome A</label>
+          <input
+            value={outcomeA}
+            onChange={(e) => setOutcomeA(e.target.value)}
+            className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-4 py-2"
+          />
+        </div>
+        <div>
+          <label className="block text-sm mb-1">Outcome B</label>
+          <input
+            value={outcomeB}
+            onChange={(e) => setOutcomeB(e.target.value)}
+            className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-4 py-2"
+          />
+        </div>
+      </div>
+      <div>
+        <label className="block text-sm mb-1">Deadline (max {MAX_MARKET_DAYS} days)</label>
+        <input
+          value={deadline}
+          onChange={(e) => setDeadline(e.target.value)}
+          type="datetime-local"
+          className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-4 py-2"
+        />
+      </div>
+
+      {status && <p className="text-sm text-zinc-400">{status}</p>}
+
+      <button
+        type="submit"
+        disabled={busy}
+        className="w-full bg-red-700 hover:bg-red-600 disabled:opacity-50 text-white font-medium py-3 rounded-lg"
+      >
+        {busy ? "Submitting..." : "Submit for Review"}
+      </button>
+    </form>
+  );
+}
+
+export default function CreateMarketPage() {
+  const { publicKey } = useWallet();
+  const [emailVerified, setEmailVerified] = useState(false);
 
   return (
     <div className="max-w-xl">
       <h2 className="text-2xl font-bold mb-6">Submit a Market</h2>
       <p className="text-zinc-400 mb-8 text-sm">
-        All markets are reviewed by admin. You need a connected wallet and a
-        verified email. Max duration: {MAX_MARKET_DAYS} days. Binary outcomes only.
+        All markets are reviewed by admin. You need a connected, signed-in wallet
+        and a verified email. Max duration: {MAX_MARKET_DAYS} days. Binary outcomes only.
       </p>
 
-      {!publicKey && (
-        <p className="text-sm text-zinc-500">Connect your wallet to get started.</p>
-      )}
-
-      {publicKey && !emailVerified && (
-        <EmailVerifyGate wallet={publicKey.toBase58()} onVerified={() => setEmailVerified(true)} />
-      )}
-
-      {publicKey && emailVerified && (
-        <form className="space-y-5" onSubmit={handleSubmit}>
-          <div>
-            <label className="block text-sm mb-1">Title</label>
-            <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-4 py-2"
-              placeholder="Will X happen by Y date?"
-            />
-          </div>
-          <div>
-            <label className="block text-sm mb-1">Description / Resolution criteria</label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-4 py-2 h-28"
-              placeholder="Clear rules for how this will be resolved..."
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm mb-1">Outcome A</label>
-              <input
-                value={outcomeA}
-                onChange={(e) => setOutcomeA(e.target.value)}
-                className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-4 py-2"
-              />
-            </div>
-            <div>
-              <label className="block text-sm mb-1">Outcome B</label>
-              <input
-                value={outcomeB}
-                onChange={(e) => setOutcomeB(e.target.value)}
-                className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-4 py-2"
-              />
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm mb-1">Deadline (max {MAX_MARKET_DAYS} days)</label>
-            <input
-              value={deadline}
-              onChange={(e) => setDeadline(e.target.value)}
-              type="datetime-local"
-              className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-4 py-2"
-            />
-          </div>
-
-          {status && <p className="text-sm text-zinc-400">{status}</p>}
-
-          <button
-            type="submit"
-            disabled={busy}
-            className="w-full bg-red-700 hover:bg-red-600 disabled:opacity-50 text-white font-medium py-3 rounded-lg"
-          >
-            {busy ? "Submitting..." : "Submit for Review"}
-          </button>
-        </form>
-      )}
+      <SignInGate>
+        {publicKey && !emailVerified && (
+          <EmailVerifyGate wallet={publicKey.toBase58()} onVerified={() => setEmailVerified(true)} />
+        )}
+        {publicKey && emailVerified && <CreateMarketForm wallet={publicKey.toBase58()} />}
+      </SignInGate>
     </div>
   );
 }

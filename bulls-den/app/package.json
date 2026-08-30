@@ -24,7 +24,8 @@
     "lucide-react": "^0.428.0",
     "resend": "^4.0.0",
     "server-only": "^0.0.1",
-    "bs58": "^6.0.0"
+    "bs58": "^6.0.0",
+    "tweetnacl": "^1.0.3"
   },
   "devDependencies": {
     "@types/node": "^20",

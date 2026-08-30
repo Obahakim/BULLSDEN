@@ -5,3 +5,27 @@
 body {
   font-family: system-ui, -apple-system, sans-serif;
 }
+
+/*
+  Casino background image, dimmed with a dark scrim so text stays readable
+  everywhere it's used. `fixed` keeps it stable behind scrolling content.
+  Applied once here so every page gets the same consistent treatment.
+*/
+.rbd-bg {
+  background-image:
+    linear-gradient(to bottom, rgba(9, 9, 11, 0.92), rgba(9, 9, 11, 0.96)),
+    url("/casino-bg.jpg");
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+/*
+  The logo art has a solid black backdrop from generation. Screen-blending it
+  against our near-black background makes the black disappear, leaving just
+  the neon linework — no visible logo "box".
+*/
+.rbd-logo {
+  mix-blend-mode: screen;
+}

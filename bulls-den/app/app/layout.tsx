@@ -5,7 +5,7 @@ import { ConnectButton } from "@/components/ConnectButton";
 import { FaucetButton } from "@/components/FaucetButton";
 
 export const metadata: Metadata = {
-  title: "Bull's Den | $ANSEM Prediction Market",
+  title: "RebelBulls Den | $ANSEM Prediction Market",
   description: "Moderated $ANSEM-only prediction market. Fun. Fair. Only bulls.",
 };
 
@@ -16,22 +16,21 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-zinc-950 text-zinc-100 min-h-screen">
+      <body className="rbd-bg bg-zinc-950 text-zinc-100 min-h-screen">
         <WalletContextProvider>
-          <header className="border-b border-zinc-800 px-6 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-red-900 flex items-center justify-center text-xl">
-                🐂
-              </div>
-              <div>
-                <h1 className="font-bold text-xl tracking-tight">Bull&apos;s Den</h1>
-                <p className="text-xs text-zinc-500">$ANSEM only</p>
-              </div>
-            </div>
+          <header className="border-b border-zinc-800/80 px-6 py-3 flex items-center justify-between backdrop-blur-sm bg-zinc-950/40">
+            <a href="/" className="flex items-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/rebelbulls-logo.png"
+                alt="RebelBulls Den"
+                className="h-14 w-auto rbd-logo"
+              />
+            </a>
             <nav className="flex items-center gap-6 text-sm">
               <a href="/" className="hover:text-red-400">Markets</a>
               <a href="/create" className="hover:text-red-400">Create</a>
-              <a href="/admin" className="hover:text-red-400">Admin</a>
+              <a href="/portfolio" className="hover:text-red-400">Portfolio</a>
               <FaucetButton />
               <ConnectButton />
             </nav>

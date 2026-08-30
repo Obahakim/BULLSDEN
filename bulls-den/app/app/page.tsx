@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase, supabaseConfigured, type MarketRow } from "@/lib/supabase";
 import { BuySharesModal } from "@/components/BuySharesModal";
+import { LoreSection } from "@/components/LoreSection";
 
 export default function HomePage() {
   const [markets, setMarkets] = useState<MarketRow[]>([]);
@@ -36,9 +37,11 @@ export default function HomePage() {
       <div className="mb-10">
         <h2 className="text-3xl font-bold mb-2">The Den</h2>
         <p className="text-zinc-400">
-          Moderated prediction markets. Only $ANSEM. Winners take 88%.
+          Moderated prediction markets. Only $ANSEM.
         </p>
       </div>
+
+      <LoreSection />
 
       {!supabaseConfigured && (
         <div className="border border-yellow-800 bg-yellow-950/30 rounded-xl p-4 mb-6 text-sm text-yellow-300">
