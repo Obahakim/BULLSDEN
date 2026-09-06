@@ -1,10 +1,10 @@
 import "server-only";
 import crypto from "crypto";
 
-// Falls back to an insecure dev default so the app doesn't crash if you forget
-// to set this — but ALWAYS set SESSION_SECRET to a long random string in
-// .env.local before this touches anything beyond your own local testing.
-const SESSION_SECRET = process.env.SESSION_SECRET || "dev-only-insecure-secret-change-me";
+const SESSION_SECRET = process.env.SESSION_SECRET;
+if (!SESSION_SECRET || SESSION_SECRET.length < 32) {
+  throw new Error("SESSION_SECRET must be configured with at least 32 characters.");
+}
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 export const SESSION_COOKIE = "rbd_session";
@@ -24,6 +24,12 @@ function hmac(payload: string): string {
   return crypto.createHmac("sha256", SESSION_SECRET).update(payload).digest("hex");
 }
 
+function signaturesMatch(expected: string, actual: string): boolean {
+  const expectedBytes = Buffer.from(expected, "hex");
+  const actualBytes = Buffer.from(actual, "hex");
+  return expectedBytes.length === actualBytes.length && crypto.timingSafeEqual(expectedBytes, actualBytes);
+}
+
 export function createSessionToken(wallet: string): string {
   const exp = Date.now() + SESSION_TTL_MS;
   const payload = Buffer.from(JSON.stringify({ wallet, exp })).toString("base64url");
@@ -34,7 +40,7 @@ export function verifySessionToken(token: string | undefined | null): { wallet: 
   if (!token) return null;
   const [payload, sig] = token.split(".");
   if (!payload || !sig) return null;
-  if (hmac(payload) !== sig) return null;
+  if (!signaturesMatch(hmac(payload), sig)) return null;
   try {
     const data = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
     if (!data.wallet || !data.exp || Date.now() > data.exp) return null;

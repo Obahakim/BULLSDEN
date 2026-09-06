@@ -1,25 +1,4 @@
-# Current Build Status & Next Steps
 
-## Completed
-
-### On-chain (programs/bulls-den/src/lib.rs)
-- Config PDA, Market + Vault PDAs, UserPosition PDA
-- initialize_config, create_market, buy_shares, resolve_market, claim_winnings
-- Events + full error set. Vault authority is always the market PDA.
-- Anchor.toml moved to repo root (was misplaced), added root Cargo.toml workspace
-  so `anchor build` / `anchor test` work out of the box.
-
-### IDL
-- Hand-written `target/idl/bulls_den.json` + `app/lib/idl.ts`, matching lib.rs
-  instruction/account/event discriminators exactly. Once you run `anchor build`
-  on your machine, overwrite these with the real generated files — the hand
-  version is only a stand-in so the frontend has real types to compile against
-  right now.
-
-### Frontend (app/)
-- next.config.js, tsconfig.json, tailwind.config.js, postcss.config.js added
-  (were missing — `npm run dev` would not have booted before).
-- Wallet adapter wired up (Phantom + Solflare) with a connect button in the header.
 - lib/program.ts: Anchor Program helper + PDA derivation functions.
 - Home page: loads open markets from Supabase, "Buy Shares" opens a modal that
   calls the real `buy_shares` on-chain instruction.
@@ -44,6 +23,29 @@
 5. Polish UI with the Russian-bar / mechanical bull lore.
 
 ## How to run locally today
+
+### Rust / Anchor toolchain note
+
+This directory (`bulls-den/`) is the Anchor workspace; the repository parent is
+not. Run `anchor` commands from this directory, where `Anchor.toml` and the
+workspace `Cargo.toml` live.
+
+`Cargo.lock` uses lockfile format v4, which is correct for current Cargo.
+Do not downgrade it to support an old Anchor/Solana build toolchain. Instead,
+upgrade the Anchor CLI, the Anchor Rust and TypeScript packages, and the
+Solana/Agave toolchain as one tested set, then regenerate the lockfile with
+that toolchain:
+
+```bash
+# Run after updating the toolchain and Anchor dependencies together.
+rm -f Cargo.lock programs/bulls-den/Cargo.lock
+cargo generate-lockfile
+anchor build
+```
+
+If `anchor build` still reports that v4 requires `-Znext-lockfile-bump`, the
+installed Anchor/Solana compiler is older than the lockfile. Upgrade that
+compiler; do not edit the generated lockfile header by hand.
 
 ```bash
 # 1. Frontend only (fastest path to `npm run dev` working):
@@ -70,15 +72,3 @@ cd .. # repo root (where Anchor.toml lives)
 anchor build
 anchor keys list              # copy the new program id
 # paste it into declare_id!() in programs/bulls-den/src/lib.rs
-# and into NEXT_PUBLIC_PROGRAM_ID in app/.env.local, then:
-anchor build && anchor deploy
-
-# Copy the freshly generated target/idl/bulls_den.json over the hand-written
-# one, and regenerate app/lib/idl.ts from it (or import target/idl directly).
-
-# 4. Fake $ANSEM for devnet testing:
-npx ts-node scripts/create-fake-ansem.ts
-# put the printed mint into NEXT_PUBLIC_ANSEM_MINT in app/.env.local
-
-# 5. Restart `npm run dev` — buy/resolve buttons will now hit the real program.
-```

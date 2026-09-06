@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer};
 
-declare_id!("Bu11sDen11111111111111111111111111111111111"); // Replace after first deploy
+declare_id!("F1bFkZ4SyQ4QXJWZybGHbwtxYa29kVof2dsAWUWLFb8f"); // Replace after first deploy
 
 pub const CONFIG_SEED: &[u8] = b"config";
 pub const MARKET_SEED: &[u8] = b"market";
@@ -19,10 +19,7 @@ pub mod bulls_den {
 
     /// One-time initialization of global config.
     /// Sets the only allowed $ANSEM mint, treasury, and admin.
-    pub fn initialize_config(
-        ctx: Context<InitializeConfig>,
-        treasury: Pubkey,
-    ) -> Result<()> {
+    pub fn initialize_config(ctx: Context<InitializeConfig>, treasury: Pubkey) -> Result<()> {
         let config = &mut ctx.accounts.config;
         config.admin = ctx.accounts.admin.key();
         config.treasury = treasury;
@@ -80,7 +77,10 @@ pub mod bulls_den {
         require!(outcome <= 1, ErrorCode::InvalidOutcome);
 
         let market = &mut ctx.accounts.market;
-        require!(market.status == MarketStatus::Open, ErrorCode::MarketNotOpen);
+        require!(
+            market.status == MarketStatus::Open,
+            ErrorCode::MarketNotOpen
+        );
         require!(
             Clock::get()?.unix_timestamp < market.deadline,
             ErrorCode::MarketExpired
@@ -99,9 +99,15 @@ pub mod bulls_den {
 
         // Update market totals
         if outcome == 0 {
-            market.total_a = market.total_a.checked_add(amount).ok_or(ErrorCode::Overflow)?;
+            market.total_a = market
+                .total_a
+                .checked_add(amount)
+                .ok_or(ErrorCode::Overflow)?;
         } else {
-            market.total_b = market.total_b.checked_add(amount).ok_or(ErrorCode::Overflow)?;
+            market.total_b = market
+                .total_b
+                .checked_add(amount)
+                .ok_or(ErrorCode::Overflow)?;
         }
 
         // Update or init user position
@@ -117,9 +123,15 @@ pub mod bulls_den {
         }
 
         if outcome == 0 {
-            position.shares_a = position.shares_a.checked_add(amount).ok_or(ErrorCode::Overflow)?;
+            position.shares_a = position
+                .shares_a
+                .checked_add(amount)
+                .ok_or(ErrorCode::Overflow)?;
         } else {
-            position.shares_b = position.shares_b.checked_add(amount).ok_or(ErrorCode::Overflow)?;
+            position.shares_b = position
+                .shares_b
+                .checked_add(amount)
+                .ok_or(ErrorCode::Overflow)?;
         }
 
         emit!(BuyEvent {
@@ -135,14 +147,14 @@ pub mod bulls_den {
     /// Admin resolves the market.
     /// Pays 10% to treasury + 2% to creator immediately.
     /// Remaining 88% stays in vault for winners to claim via claim_winnings.
-    pub fn resolve_market(
-        ctx: Context<ResolveMarket>,
-        winning_outcome: u8,
-    ) -> Result<()> {
+    pub fn resolve_market(ctx: Context<ResolveMarket>, winning_outcome: u8) -> Result<()> {
         require!(winning_outcome <= 1, ErrorCode::InvalidOutcome);
 
         let market = &mut ctx.accounts.market;
-        require!(market.status == MarketStatus::Open, ErrorCode::MarketNotOpen);
+        require!(
+            market.status == MarketStatus::Open,
+            ErrorCode::MarketNotOpen
+        );
         require!(
             Clock::get()?.unix_timestamp >= market.deadline,
             ErrorCode::TooEarlyToResolve
@@ -209,12 +221,21 @@ pub mod bulls_den {
     /// Can only be called once per position after market is resolved.
     pub fn claim_winnings(ctx: Context<ClaimWinnings>) -> Result<()> {
         let market = &ctx.accounts.market;
-        require!(market.status == MarketStatus::Resolved, ErrorCode::MarketNotResolved);
-        require!(market.winning_outcome.is_some(), ErrorCode::NoWinningOutcome);
+        require!(
+            market.status == MarketStatus::Resolved,
+            ErrorCode::MarketNotResolved
+        );
+        require!(
+            market.winning_outcome.is_some(),
+            ErrorCode::NoWinningOutcome
+        );
 
         let position = &mut ctx.accounts.position;
         require!(!position.claimed, ErrorCode::AlreadyClaimed);
-        require!(position.user == ctx.accounts.user.key(), ErrorCode::Unauthorized);
+        require!(
+            position.user == ctx.accounts.user.key(),
+            ErrorCode::Unauthorized
+        );
 
         let winning_outcome = market.winning_outcome.unwrap();
         let user_winning_shares = if winning_outcome == 0 {
@@ -275,11 +296,7 @@ fn transfer_from_vault<'info>(
     market_id: u64,
     vault_bump: u8,
 ) -> Result<()> {
-    let seeds = &[
-        VAULT_SEED,
-        &market_id.to_le_bytes(),
-        &[vault_bump],
-    ];
+    let seeds = &[VAULT_SEED, &market_id.to_le_bytes(), &[vault_bump]];
     let signer = &[&seeds[..]];
 
     let cpi_accounts = Transfer {

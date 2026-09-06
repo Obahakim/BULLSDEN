@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { BN } from "@coral-xyz/anchor";
+import { BN } from "@anchor-lang/core";
 import { PublicKey } from "@solana/web3.js";
 import { getAssociatedTokenAddressSync } from "@solana/spl-token";
 import { supabase, supabaseConfigured, type MarketSubmission, type MarketRow } from "@/lib/supabase";

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
-import { BN } from "@coral-xyz/anchor";
+import { BN } from "@anchor-lang/core";
 import { getAssociatedTokenAddressSync } from "@solana/spl-token";
 import { useBullsDenProgram, marketPda, vaultPda, positionPda, configPda } from "@/lib/program";
 import { ANSEM_MINT } from "@/lib/constants";

@@ -1,4 +1,4 @@
-import { AnchorProvider, BN, Program } from "@coral-xyz/anchor";
+import { AnchorProvider, BN, Program } from "@anchor-lang/core";
 import { AnchorWallet, useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
 import { IDL } from "./idl";
