@@ -1,6 +1,10 @@
 import "server-only";
 import crypto from "crypto";
 
+// Falls back to an insecure dev default so the app doesn't crash if you forget
+// to set this — but ALWAYS set SESSION_SECRET to a long random string in
+// .env.local before this touches anything beyond your own local testing.
+const SESSION_SECRET = process.env.SESSION_SECRET || "dev-only-insecure-secret-change-me";
 const SESSION_SECRET = process.env.SESSION_SECRET;
 if (!SESSION_SECRET || SESSION_SECRET.length < 32) {
   throw new Error("SESSION_SECRET must be configured with at least 32 characters.");
@@ -40,6 +44,7 @@ export function verifySessionToken(token: string | undefined | null): { wallet: 
   if (!token) return null;
   const [payload, sig] = token.split(".");
   if (!payload || !sig) return null;
+  if (hmac(payload) !== sig) return null;
   if (!signaturesMatch(hmac(payload), sig)) return null;
   try {
     const data = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
@@ -60,4 +65,5 @@ const ALLOWED_ADMIN_IPS: string[] = [];
 export function isAllowedAdminIp(ip: string | null): boolean {
   if (!REQUIRE_IP_ALLOWLIST) return true;
   return !!ip && ALLOWED_ADMIN_IPS.includes(ip);
+}
 }

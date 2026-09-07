@@ -76,13 +76,12 @@ pub mod bulls_den {
         require!(amount > 0, ErrorCode::ZeroAmount);
         require!(outcome <= 1, ErrorCode::InvalidOutcome);
 
-        let market = &mut ctx.accounts.market;
         require!(
-            market.status == MarketStatus::Open,
+            ctx.accounts.market.status == MarketStatus::Open,
             ErrorCode::MarketNotOpen
         );
         require!(
-            Clock::get()?.unix_timestamp < market.deadline,
+            Clock::get()?.unix_timestamp < ctx.accounts.market.deadline,
             ErrorCode::MarketExpired
         );
 
@@ -93,18 +92,22 @@ pub mod bulls_den {
             authority: ctx.accounts.user.to_account_info(),
         };
         token::transfer(
-            CpiContext::new(ctx.accounts.token_program.to_account_info(), cpi_accounts),
+            CpiContext::new(ctx.accounts.token_program.key(), cpi_accounts),
             amount,
         )?;
 
         // Update market totals
         if outcome == 0 {
-            market.total_a = market
+            ctx.accounts.market.total_a = ctx
+                .accounts
+                .market
                 .total_a
                 .checked_add(amount)
                 .ok_or(ErrorCode::Overflow)?;
         } else {
-            market.total_b = market
+            ctx.accounts.market.total_b = ctx
+                .accounts
+                .market
                 .total_b
                 .checked_add(amount)
                 .ok_or(ErrorCode::Overflow)?;
@@ -115,7 +118,7 @@ pub mod bulls_den {
         if position.user == Pubkey::default() {
             // First time for this user on this market
             position.user = ctx.accounts.user.key();
-            position.market_id = market.market_id;
+            position.market_id = ctx.accounts.market.market_id;
             position.shares_a = 0;
             position.shares_b = 0;
             position.claimed = false;
@@ -135,7 +138,7 @@ pub mod bulls_den {
         }
 
         emit!(BuyEvent {
-            market_id: market.market_id,
+            market_id: ctx.accounts.market.market_id,
             user: ctx.accounts.user.key(),
             amount,
             outcome,
@@ -150,13 +153,12 @@ pub mod bulls_den {
     pub fn resolve_market(ctx: Context<ResolveMarket>, winning_outcome: u8) -> Result<()> {
         require!(winning_outcome <= 1, ErrorCode::InvalidOutcome);
 
-        let market = &mut ctx.accounts.market;
         require!(
-            market.status == MarketStatus::Open,
+            ctx.accounts.market.status == MarketStatus::Open,
             ErrorCode::MarketNotOpen
         );
         require!(
-            Clock::get()?.unix_timestamp >= market.deadline,
+            Clock::get()?.unix_timestamp >= ctx.accounts.market.deadline,
             ErrorCode::TooEarlyToResolve
         );
 
@@ -186,8 +188,8 @@ pub mod bulls_den {
             &ctx.accounts.market.to_account_info(),
             &ctx.accounts.token_program,
             treasury_amount,
-            market.market_id,
-            market.vault_bump,
+            ctx.accounts.market.market_id,
+            ctx.accounts.market.vault_bump,
         )?;
 
         // 2% → creator
@@ -197,10 +199,11 @@ pub mod bulls_den {
             &ctx.accounts.market.to_account_info(),
             &ctx.accounts.token_program,
             creator_amount,
-            market.market_id,
-            market.vault_bump,
+            ctx.accounts.market.market_id,
+            ctx.accounts.market.vault_bump,
         )?;
 
+        let market = &mut ctx.accounts.market;
         market.status = MarketStatus::Resolved;
         market.winning_outcome = Some(winning_outcome);
         market.winners_pool = winners_pool;
@@ -305,7 +308,7 @@ fn transfer_from_vault<'info>(
         authority: market.clone(),
     };
     token::transfer(
-        CpiContext::new_with_signer(token_program.to_account_info(), cpi_accounts, signer),
+        CpiContext::new_with_signer(token_program.key(), cpi_accounts, signer),
         amount,
     )?;
     Ok(())
