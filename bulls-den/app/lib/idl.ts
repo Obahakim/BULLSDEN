@@ -1,5 +1,5 @@
 export const IDL = {
-  "address": "Bu11sDen11111111111111111111111111111111111",
+  "address": "F1bFkZ4SyQ4QXJWZybGHbwtxYa29kVof2dsAWUWLFb8f",
   "metadata": {
     "name": "bulls_den",
     "version": "0.1.0",
@@ -104,7 +104,7 @@ export const IDL = {
         },
         {
           "name": "rent",
-          "address": "SysvarRent111111111111111111111111111111"
+          "address": "SysvarRent111111111111111111111111111111111"
         }
       ],
       "args": [

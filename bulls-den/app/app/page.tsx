@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase, supabaseConfigured, type MarketRow } from "@/lib/supabase";
+import { supabaseConfigured, type MarketRow } from "@/lib/supabase";
 import { BuySharesModal } from "@/components/BuySharesModal";
 import { LoreSection } from "@/components/LoreSection";
 
@@ -17,14 +17,10 @@ export default function HomePage() {
       return;
     }
     setLoading(true);
-    const { data, error } = await supabase
-      .from("markets")
-      .select("*")
-      .eq("status", "open")
-      .order("created_at", { ascending: false });
-
-    if (error) setError(error.message);
-    else setMarkets(data || []);
+    const response = await fetch("/api/markets");
+    const result = await response.json();
+    if (!response.ok) setError(result.error || "Failed to load markets.");
+    else setMarkets(result.markets || []);
     setLoading(false);
   }
 
