@@ -167,14 +167,14 @@ pub mod bulls_den {
 
         let treasury_amount = (total as u128)
             .checked_mul(TREASURY_FEE_BPS as u128)
-            .unwrap()
+            .ok_or(ErrorCode::Overflow)?
             .checked_div(10000)
-            .unwrap() as u64;
+            .ok_or(ErrorCode::Overflow)? as u64;
         let creator_amount = (total as u128)
             .checked_mul(CREATOR_FEE_BPS as u128)
-            .unwrap()
+            .ok_or(ErrorCode::Overflow)?
             .checked_div(10000)
-            .unwrap() as u64;
+            .ok_or(ErrorCode::Overflow)? as u64;
         let winners_pool = total
             .checked_sub(treasury_amount)
             .ok_or(ErrorCode::Overflow)?
