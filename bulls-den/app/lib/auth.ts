@@ -1,13 +1,13 @@
 import "server-only";
 import crypto from "crypto";
 
-const SESSION_SECRET = (() => {
+function getSessionSecret(): string {
   const secret = process.env.SESSION_SECRET;
   if (!secret || secret.length < 32) {
     throw new Error("SESSION_SECRET must be configured with at least 32 characters.");
   }
   return secret;
-})();
+}
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 export const SESSION_COOKIE = "rbd_session";
@@ -24,7 +24,7 @@ export function buildSignInMessage(wallet: string, nonce: string): string {
 }
 
 function hmac(payload: string): string {
-  return crypto.createHmac("sha256", SESSION_SECRET).update(payload).digest("hex");
+  return crypto.createHmac("sha256", getSessionSecret()).update(payload).digest("hex");
 }
 
 function signaturesMatch(expected: string, actual: string): boolean {
