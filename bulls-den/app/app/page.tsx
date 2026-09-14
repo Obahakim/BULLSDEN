@@ -10,6 +10,7 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [buying, setBuying] = useState<MarketRow | null>(null);
+  const [prices, setPrices] = useState<Record<string, { usd: number; usd_24h_change: number }>>({});
 
   async function loadMarkets() {
     if (!supabaseConfigured) {
@@ -26,10 +27,51 @@ export default function HomePage() {
 
   useEffect(() => {
     loadMarkets();
+    let cancelled = false;
+    async function loadPrices() {
+      try {
+        const response = await fetch("/api/prices");
+        if (!response.ok) return;
+        const data = await response.json();
+        if (!cancelled) setPrices(data);
+      } catch {
+        // The market remains usable when the optional price feed is unavailable.
+      }
+    }
+    loadPrices();
+    const interval = window.setInterval(loadPrices, 60_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
   }, []);
 
   return (
-    <div>
+    <div className="rbd-bg -mx-6 -mt-8 px-6 pt-8 pb-10">
+      <div className="overflow-hidden border-y border-zinc-800/70 bg-zinc-950/50 mb-8">
+        <div className="ticker-track flex w-max">
+          {[...Array(2)].flatMap((_, copy) =>
+            [
+              ["BTC", "bitcoin"],
+              ["ETH", "ethereum"],
+              ["BNB", "binancecoin"],
+              ["SOL", "solana"],
+            ].map(([symbol, id]) => {
+              const price = prices[id];
+              return (
+                <span key={`${copy}-${id}`} className="px-6 py-2 text-xs whitespace-nowrap">
+                  {symbol} {price ? `$${price.usd.toLocaleString()}` : "Loading..."}{" "}
+                  {price && (
+                    <span className={price.usd_24h_change >= 0 ? "text-green-400" : "text-red-400"}>
+                      {price.usd_24h_change >= 0 ? "+" : ""}{price.usd_24h_change.toFixed(2)}%
+                    </span>
+                  )}
+                </span>
+              );
+            })
+          )}
+        </div>
+      </div>
       <div className="mb-10">
         <h2 className="text-3xl font-bold mb-2">The Den</h2>
         <p className="text-zinc-400">
@@ -64,8 +106,9 @@ export default function HomePage() {
         {markets.map((m) => (
           <div
             key={m.id}
-            className="border border-zinc-800 rounded-xl p-6 bg-zinc-900/50 flex items-center justify-between gap-4"
+            className="border border-zinc-800 rounded-xl p-6 bg-zinc-900/70 transition-colors hover:border-red-800"
           >
+            <button type="button" onClick={() => setBuying(buying?.id === m.id ? null : m)} className="w-full text-left flex items-center justify-between gap-4">
             <div>
               <h3 className="font-semibold mb-1">{m.title}</h3>
               <p className="text-xs text-zinc-500 mb-2">
@@ -75,27 +118,26 @@ export default function HomePage() {
                 Pool: {m.total_a + m.total_b} $ANSEM ({m.total_a} / {m.total_b})
               </p>
             </div>
-            <button
-              onClick={() => setBuying(m)}
-              disabled={!m.onchain_market_id}
-              className="bg-red-700 hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed px-4 py-2 rounded-lg text-sm whitespace-nowrap"
-            >
+            <span className="bg-red-700 px-4 py-2 rounded-lg text-sm whitespace-nowrap">
               {m.onchain_market_id ? "Buy Shares" : "Not on-chain yet"}
+            </span>
             </button>
+            <div
+              className={`market-buy-panel ${buying?.id === m.id ? "is-open" : ""}`}
+              aria-hidden={buying?.id !== m.id}
+            >
+              <div className="market-buy-panel-content">
+                <BuySharesModal
+                  market={m}
+                  onClose={() => setBuying(null)}
+                  onSuccess={loadMarkets}
+                  inline
+                />
+              </div>
+            </div>
           </div>
         ))}
       </div>
-
-      {buying && (
-        <BuySharesModal
-          market={buying}
-          onClose={() => setBuying(null)}
-          onSuccess={() => {
-            setBuying(null);
-            loadMarkets();
-          }}
-        />
-      )}
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { AnchorProvider, BN, Program } from "@anchor-lang/core";
+import { useMemo } from "react";
 import { AnchorWallet, useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
 import { IDL } from "./idl";
@@ -24,16 +25,17 @@ export function useBullsDenProgram(): Program<any> | null {
   const { connection } = useConnection();
   const wallet = useWallet();
 
-  if (!wallet.publicKey || !wallet.signTransaction) return null;
+  return useMemo(() => {
+    if (!wallet.publicKey || !wallet.signTransaction) return null;
 
-  const anchorWallet: AnchorWallet = {
-    publicKey: wallet.publicKey,
-    signTransaction: wallet.signTransaction as any,
-    signAllTransactions: wallet.signAllTransactions as any,
-  };
+    const anchorWallet: AnchorWallet = {
+      publicKey: wallet.publicKey,
+      signTransaction: wallet.signTransaction as any,
+      signAllTransactions: wallet.signAllTransactions as any,
+    };
 
-  const provider = getProvider(connection, anchorWallet);
-  return getProgram(provider);
+    return getProgram(getProvider(connection, anchorWallet));
+  }, [connection, wallet.publicKey, wallet.signTransaction, wallet.signAllTransactions]);
 }
 
 // ===== PDA helpers (must mirror the seeds in programs/bulls-den/src/lib.rs) =====

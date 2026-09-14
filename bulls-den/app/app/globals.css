@@ -6,19 +6,45 @@ body {
   font-family: system-ui, -apple-system, sans-serif;
 }
 
-/*
-  Casino background image, dimmed with a dark scrim so text stays readable
-  everywhere it's used. `fixed` keeps it stable behind scrolling content.
-  Applied once here so every page gets the same consistent treatment.
-*/
 .rbd-bg {
   background-image:
-    linear-gradient(to bottom, rgba(9, 9, 11, 0.92), rgba(9, 9, 11, 0.96)),
+    linear-gradient(to bottom, rgba(9, 9, 11, 0.52), rgba(9, 9, 11, 0.86)),
     url("/casino-bg.jpg");
   background-size: cover;
   background-position: center top;
   background-repeat: no-repeat;
   background-attachment: fixed;
+}
+
+.market-buy-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 260ms ease, opacity 180ms ease;
+}
+
+.market-buy-panel.is-open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.market-buy-panel-content {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.ticker-track {
+  animation: ticker-scroll 28s linear infinite;
+}
+
+@keyframes ticker-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ticker-track { animation: none; }
+  .market-buy-panel { transition: none; }
 }
 
 /*

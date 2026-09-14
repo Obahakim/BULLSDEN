@@ -16,7 +16,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="rbd-bg bg-zinc-950 text-zinc-100 min-h-screen">
+      <body className="bg-zinc-950 text-zinc-100 min-h-screen">
         <WalletContextProvider>
           <header className="border-b border-zinc-800/80 px-6 py-3 flex items-center justify-between backdrop-blur-sm bg-zinc-950/40">
             <a href="/" className="flex items-center">

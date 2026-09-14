@@ -5,15 +5,31 @@ import { useWallet, useConnection } from "@solana/wallet-adapter-react";
 import { getAssociatedTokenAddress, getAccount } from "@solana/spl-token";
 import { ANSEM_MINT } from "@/lib/constants";
 import { useBullsDenProgram } from "@/lib/program";
-import { supabase, supabaseConfigured, type MarketRow } from "@/lib/supabase";
+import { type MarketRow } from "@/lib/supabase";
 
 type PositionView = {
   marketId: number;
   sharesA: number;
   sharesB: number;
+  invested: number;
   claimed: boolean;
   market?: MarketRow;
 };
+
+type NumericPositionAccount = {
+  account: any;
+  marketId: number;
+  sharesA: number;
+  sharesB: number;
+};
+
+function numericAccountValue(value: unknown): number | null {
+  if (value === null || value === undefined) return null;
+  const numeric = Number(typeof value === "object" && value !== null
+    ? (value as { toString(): string }).toString()
+    : value);
+  return Number.isFinite(numeric) ? numeric : null;
+}
 
 export default function PortfolioPage() {
   const { publicKey } = useWallet();
@@ -27,16 +43,16 @@ export default function PortfolioPage() {
 
   useEffect(() => {
     if (!publicKey) return;
+    const connectedPublicKey = publicKey;
     let cancelled = false;
 
     async function load() {
-      setLoading(true);
-
-      const lamports = await connection.getBalance(publicKey!);
-      if (!cancelled) setSolBalance(lamports / 1e9);
-
       try {
-        const ata = await getAssociatedTokenAddress(ANSEM_MINT, publicKey!);
+        setLoading(true);
+        const lamports = await connection.getBalance(connectedPublicKey);
+        if (!cancelled) setSolBalance(lamports / 1e9);
+
+        const ata = await getAssociatedTokenAddress(ANSEM_MINT, connectedPublicKey);
         const account = await getAccount(connection, ata);
         if (!cancelled) setAnsemBalance(Number(account.amount) / 1_000_000);
       } catch {
@@ -46,24 +62,36 @@ export default function PortfolioPage() {
       if (program) {
         try {
           const accounts = await (program.account as any).userPosition.all([
-            { memcmp: { offset: 8, bytes: publicKey!.toBase58() } },
+            { memcmp: { offset: 8, bytes: connectedPublicKey.toBase58() } },
           ]);
 
-          const marketIds = accounts.map((a: any) => Number(a.account.market_id));
+          const mappedAccounts: NumericPositionAccount[] = accounts
+            .map((a: any): NumericPositionAccount | null => {
+              const marketId = numericAccountValue(a.account.market_id);
+              const sharesA = numericAccountValue(a.account.shares_a);
+              const sharesB = numericAccountValue(a.account.shares_b);
+              if (marketId === null || sharesA === null || sharesB === null) return null;
+              return { account: a.account, marketId, sharesA, sharesB };
+            })
+            .filter((account: NumericPositionAccount | null): account is NumericPositionAccount => account !== null);
+          const marketIds = mappedAccounts.map((a) => a.marketId);
           let marketsById: Record<number, MarketRow> = {};
-          if (supabaseConfigured && marketIds.length > 0) {
-            const { data } = await supabase.from("markets").select("*").in("onchain_market_id", marketIds);
-            (data || []).forEach((m) => {
+          if (marketIds.length > 0) {
+            const response = await fetch(`/api/markets?ids=${marketIds.join(",")}`);
+            if (!response.ok) throw new Error("Failed to load market details.");
+            const result = await response.json();
+            (result.markets || []).forEach((m: MarketRow) => {
               if (m.onchain_market_id != null) marketsById[m.onchain_market_id] = m;
             });
           }
 
-          const mapped: PositionView[] = accounts.map((a: any) => ({
-            marketId: Number(a.account.market_id),
-            sharesA: Number(a.account.shares_a) / 1_000_000,
-            sharesB: Number(a.account.shares_b) / 1_000_000,
-            claimed: a.account.claimed,
-            market: marketsById[Number(a.account.market_id)],
+          const mapped: PositionView[] = mappedAccounts.map(({ account, marketId, sharesA, sharesB }) => ({
+            marketId,
+            sharesA: sharesA / 1_000_000,
+            sharesB: sharesB / 1_000_000,
+            invested: (sharesA + sharesB) / 1_000_000,
+            claimed: account.claimed,
+            market: marketsById[marketId],
           }));
 
           if (!cancelled) setPositions(mapped);
@@ -111,6 +139,9 @@ export default function PortfolioPage() {
             <p className="font-medium">{p.market?.title || `Market #${p.marketId}`}</p>
             <p className="text-xs text-zinc-500 mt-1">
               {p.market?.outcome_a || "Outcome A"}: {p.sharesA} shares · {p.market?.outcome_b || "Outcome B"}: {p.sharesB} shares
+            </p>
+            <p className="text-xs text-zinc-400 mt-1">
+              Invested: {p.invested.toLocaleString()} $ANSEM
             </p>
             {p.claimed && <p className="text-xs text-green-500 mt-1">Winnings claimed</p>}
           </div>

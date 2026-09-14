@@ -13,10 +13,12 @@ export function BuySharesModal({
   market,
   onClose,
   onSuccess,
+  inline = false,
 }: {
   market: MarketRow;
   onClose: () => void;
   onSuccess: () => void;
+  inline?: boolean;
 }) {
   const { publicKey } = useWallet();
   const program = useBullsDenProgram();
@@ -71,8 +73,8 @@ export function BuySharesModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4">
-      <div className="bg-zinc-900 border border-zinc-700 rounded-xl p-6 w-full max-w-sm">
+    <div className={inline ? "mt-5 border-t border-zinc-800 pt-5" : "fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4"}>
+      <div className={inline ? "w-full" : "bg-zinc-900 border border-zinc-700 rounded-xl p-6 w-full max-w-sm"}>
         <h3 className="font-semibold text-lg mb-1">{market.title}</h3>
         <p className="text-xs text-zinc-500 mb-4">Buy shares with $ANSEM</p>
 
@@ -109,7 +111,7 @@ export function BuySharesModal({
             onClick={onClose}
             className="flex-1 py-2 rounded-lg border border-zinc-700 text-sm"
           >
-            Cancel
+            {inline ? "Close" : "Cancel"}
           </button>
           <button
             onClick={handleBuy}
