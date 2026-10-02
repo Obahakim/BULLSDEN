@@ -1,5 +1,8 @@
 const { PublicKey } = require("@solana/web3.js");
-require("dotenv").config({ path: ".env.local" });
+
+// Vercel and Next.js provide environment variables through process.env.
+// Run this checker from the app with Node's --env-file flag when local files
+// need to be loaded; production values must come from Vercel project variables.
 
 const vars = [
   "NEXT_PUBLIC_PROGRAM_ID",
