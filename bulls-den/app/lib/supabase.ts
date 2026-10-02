@@ -1,12 +1,12 @@
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl =
-  process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+// These values are used by browser-side components, so they must use the
+// NEXT_PUBLIC names. Next.js only inlines variables with that prefix into the
+// client bundle; private Supabase keys remain server-only.
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey =
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
-  process.env.SUPABASE_ANON_KEY ||
-  process.env.SUPABASE_PUBLISHABLE_KEY;
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
 // Guarded: if env vars are missing (e.g. first `npm run dev` before Supabase is
 // set up), the app still boots. Calls that hit the client will just fail loudly

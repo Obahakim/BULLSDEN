@@ -5,6 +5,9 @@ const { PublicKey } = require("@solana/web3.js");
 // need to be loaded; production values must come from Vercel project variables.
 
 const vars = [
+  "NEXT_PUBLIC_SUPABASE_URL",
+  "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+  "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
   "NEXT_PUBLIC_PROGRAM_ID",
   "NEXT_PUBLIC_ANSEM_MINT",
   "NEXT_PUBLIC_TREASURY_WALLET",
